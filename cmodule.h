@@ -1,15 +1,3 @@
-/* README 
-    include options :
-        CMODULE_IMPL                      : include the implementation of this file
-        CMODULE_PATH_SIZE_MAX [value=256] : sets the size of 'struct cmodule::path[value]'
-    
-    notes :
-        apply include options with '#define option' before including this file.
-        include option 'CMODULE_IMPL' must be added in any 'one' C/C++ file before 
-        including this file.
-        include option 'CMODULE_PATH_SIZE_MAX' should not be lower at least 16
-*/
-
 #ifndef _CMODULE_
 #define _CMODULE_
 
@@ -75,7 +63,6 @@ void         cmodule_free     (cmodule* mod);
 const char*  cmodule_load_err (void);
 const char*  cmodule_gsym_err (void);
 
-#define CMODULE_IMPL
 #ifdef CMODULE_IMPL
 #include <stdlib.h>
 #include <string.h>
