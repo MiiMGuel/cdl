@@ -1,5 +1,5 @@
 # CModule
-CModule is a single header file library used to load dynamic libraries (further referred as modules) at runtime.
+CModule is a single header file library used to load dynamic libraries at runtime (module loading).
 
 ## Include Options
 Include options are included with `#define <option>` before including the `cmodule.h` header file.
