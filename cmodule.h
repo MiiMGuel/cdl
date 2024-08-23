@@ -8,20 +8,20 @@ extern "C" {
 #if (defined(_WIN32) || defined(_WIN64))
 #   ifndef WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
-#       define CMODULE_UNDEF_LEAN_AND_MEAN
+#       define _UNDEF_LEAN_AND_MEAN
 #   endif 
 #   ifndef NOMINMAX
 #       define NOMINMAX
-#       define CMODULE_UNDEF_NOMINMAX
+#       define _UNDEF_NOMINMAX
 #   endif 
 #   include <windows.h>
-#   ifdef CMODULE_UNDEF_LEAN_AND_MEAN 
+#   ifdef _UNDEF_LEAN_AND_MEAN 
 #       undef WIN32_LEAN_AND_MEAN
-#       undef CMODULE_UNDEF_LEAN_AND_MEAN 
+#       undef _UNDEF_LEAN_AND_MEAN 
 #   endif 
-#   ifdef CMODULE_UNDEF_NOMINMAX
+#   ifdef _UNDEF_NOMINMAX
 #       undef NOMINMAX
-#       undef CMODULE_UNDEF_NOMINMAX
+#       undef _UNDEF_NOMINMAX
 #   endif 
 #else 
 #   include <dlfcn.h>
@@ -31,21 +31,18 @@ extern "C" {
 #   define CMODULE_PATH_SIZE_MAX 256
 #endif 
 
-static_assert(CMODULE_PATH_SIZE_MAX >= 16, "'CMODULE_PATH_SIZE_MAX' should not be lower than 16");
+static_assert(CMODULE_PATH_SIZE_MAX >= 16, "option 'CMODULE_PATH_SIZE_MAX' should not be lower than 16");
 
-typedef enum cmload_err {
-    CMLOAD_ERR_NONE       = 0,
-    CMLOAD_ERR_LOAD_FAIL  = 1,
-    CMLOAD_ERR_PARAM_NULL = 2,
-    CMLOAD_ERR_PATH_MAX   = 3
-} cmload_err;
-
-typedef enum cmgsym_err {
-    CMGSYM_ERR_NONE       = 0,
-    CMGSYM_ERR_GSYM_FAIL  = 1,
-    CMGSYM_ERR_CMLOAD_ERR  = 2,
-    CMGSYM_ERR_PARAM_NULL = 3
-} cmgsym_err;
+typedef enum cmodule_err {
+    CMODULE_ERR_LOAD_NONE  = 0,
+    CMODULE_ERR_LOAD_FAIL  = 1,
+    CMODULE_ERR_LOAD_PNULL = 2,
+    CMODULE_ERR_LOAD_PMAX  = 3,
+    CMODULE_ERR_GSYM_NONE  = -1,
+    CMODULE_ERR_GSYM_FAIL  = 4,
+    CMODULE_ERR_GSYM_MNULL = 5,
+    CMODULE_ERR_GSYM_PNULL = 6
+} cmodule_err;
 
 typedef struct cmodule {
 #   if (defined(_WIN32) || defined(_WIN64))
@@ -56,13 +53,13 @@ typedef struct cmodule {
     char path[CMODULE_PATH_SIZE_MAX];
 } cmodule;
 
-cmload_err   cmodule_load     (cmodule* mod, const char* file);
-cmload_err   cmodule_loadp    (cmodule* mod, const char* file);
-cmgsym_err   cmodule_gsym     (cmodule* mod, void** ptr, const char* symbol);
-void         cmodule_free     (cmodule* mod);
-const char*  cmodule_load_err (void);
-const char*  cmodule_gsym_err (void);
+cmodule_err cmodule_load   (cmodule* mod, const char* file);
+cmodule_err cmodule_loadwp (cmodule* mod, const char* file);
+cmodule_err cmodule_gsym   (cmodule* mod, void** ptr, const char* symbol);
+void        cmodule_free   (cmodule* mod);
+const char* cmodule_geterr (void);
 
+// #define CMODULE_IMPL
 #ifdef CMODULE_IMPL
 #include <stdlib.h>
 #include <string.h>
@@ -75,16 +72,15 @@ const char*  cmodule_gsym_err (void);
     static const char* prefix = ".so";
 #endif
 
-static cmload_err last_mload;
-static cmgsym_err last_mgsym;
+static cmodule_err last_err;
 
-cmload_err cmodule_load(cmodule* mod, const char* file) {
+cmodule_err cmodule_load(cmodule* mod, const char* file) {
     if ((mod == NULL) || (file == NULL)) { 
-        last_mload = CMLOAD_ERR_PARAM_NULL; 
-        return CMLOAD_ERR_PARAM_NULL; 
+        last_err = CMODULE_ERR_LOAD_PNULL; 
+        return last_err; 
     } else if (sizeof(file) > CMODULE_PATH_SIZE_MAX) { 
-        last_mload = CMLOAD_ERR_PATH_MAX; 
-        return CMLOAD_ERR_PATH_MAX; 
+        last_err = CMODULE_ERR_LOAD_PMAX; 
+        return last_err; 
     } else {
         strcpy(mod->path, file);
 #       if (defined(_WIN32) || defined(_WIN64))
@@ -93,22 +89,22 @@ cmload_err cmodule_load(cmodule* mod, const char* file) {
             mod->handle = dlopen(file, RTLD_LAZY);
 #       endif 
         if (!mod->handle) { 
-            last_mload = CMLOAD_ERR_LOAD_FAIL; 
-            return CMLOAD_ERR_LOAD_FAIL; 
+            last_err = CMODULE_ERR_LOAD_FAIL; 
+            return last_err; 
         } else { 
-            last_mload = CMLOAD_ERR_NONE; 
-            return CMLOAD_ERR_NONE;
+            last_err = CMODULE_ERR_LOAD_NONE; 
+            return last_err;
         }
     }
 }
 
-cmload_err cmodule_loadp(cmodule* mod, const char* file) {
+cmodule_err cmodule_loadwp(cmodule* mod, const char* file) {
     if ((mod == NULL) || (file == NULL)) { 
-        last_mload = CMLOAD_ERR_PARAM_NULL; 
-        return CMLOAD_ERR_PARAM_NULL; 
+        last_err = CMODULE_ERR_LOAD_PNULL; 
+        return last_err; 
     } else if (sizeof(file) > CMODULE_PATH_SIZE_MAX - 7) { 
-        last_mload = CMLOAD_ERR_PATH_MAX; 
-        return CMLOAD_ERR_PATH_MAX; 
+        last_err = CMODULE_ERR_LOAD_PMAX; 
+        return last_err;
     } else {
         strcpy(mod->path, file);
         strcat(mod->path, prefix);
@@ -118,79 +114,75 @@ cmload_err cmodule_loadp(cmodule* mod, const char* file) {
             mod->handle = dlopen(mod->path, RTLD_LAZY);
 #       endif
         if (!mod->handle) { 
-            last_mload = CMLOAD_ERR_LOAD_FAIL; 
-            return CMLOAD_ERR_LOAD_FAIL; 
+            last_err = CMODULE_ERR_LOAD_FAIL; 
+            return last_err;
         } else { 
-            last_mload = CMLOAD_ERR_NONE; 
-            return CMLOAD_ERR_NONE;
+            last_err = CMODULE_ERR_LOAD_NONE; 
+            return last_err;
         }
     }
 }
 
-cmgsym_err cmodule_gsym(cmodule* mod, void** ptr, const char* symbol) {
+cmodule_err cmodule_gsym(cmodule* mod, void** ptr, const char* symbol) {
     if ((mod == NULL) || (symbol == NULL)) {
-        last_mgsym = CMGSYM_ERR_PARAM_NULL;
-        return CMGSYM_ERR_PARAM_NULL;
+        last_err = CMODULE_ERR_LOAD_PNULL;
+        return last_err;
     } else if (mod->handle == NULL) {
-        last_mgsym = CMGSYM_ERR_CMLOAD_ERR;
-        return CMGSYM_ERR_CMLOAD_ERR;
+        last_err = CMODULE_ERR_GSYM_MNULL;
+        return last_err;
     } else {
 #       if (defined(_WIN32) || defined(_WIN64))
-            *ptr = (void*)GetProcAddress((HCMODULE)mod->handle, symbol);
+            *ptr = (void*)GetProcAddress((HMODULE)mod->handle, symbol);
 #       else
             *ptr = dlsym(mod->handle, symbol);
 #       endif
         if (*ptr == NULL) { 
-            last_mgsym = CMGSYM_ERR_GSYM_FAIL;
-            return CMGSYM_ERR_GSYM_FAIL;
+            last_err = CMODULE_ERR_GSYM_FAIL;
+            return last_err;
         } else { 
-            last_mgsym = CMGSYM_ERR_NONE;
-            return CMGSYM_ERR_NONE;
+            last_err = CMODULE_ERR_GSYM_NONE;
+            return last_err;
         }
     }
 }
 
 void cmodule_free(cmodule* mod) {
 #   if (defined(_WIN32) || defined(_WIN64))
-        if (!FreeLibrary((HCMODULE)mod->handle))
-            UnmapViewOfFile((HCMODULE)mod->handle); // last resort
+        if (!FreeLibrary((HMODULE)mod->handle))
+            UnmapViewOfFile((HMODULE)mod->handle); // last resort
 #   else
         dlclose(mod->handle);
 #   endif 
 }
 
-const char* cmodule_load_err(void) {
-    switch (last_mload) {
-    case CMLOAD_ERR_NONE:
+const char* cmodule_geterr(void) {
+    switch (last_err) {
+    case CMODULE_ERR_LOAD_NONE:
         return "";
 
-    case CMLOAD_ERR_PARAM_NULL:
+    case CMODULE_ERR_LOAD_PNULL:
         return "a parameter was null";  
     
-    case CMLOAD_ERR_PATH_MAX:
-        return "parameter path exceed max size"; 
+    case CMODULE_ERR_LOAD_PMAX:
+        return "parameter 'path' exceed max size"; 
     
-    case CMLOAD_ERR_LOAD_FAIL:
+    case CMODULE_ERR_LOAD_FAIL:
 #       if (defined(_WIN32) || defined(_WIN64))
             return "module not found";
 #       else
             return dlerror();
 #       endif
-    }
-}
-
-const char* cmodule_gsym_err(void) {
-    switch (last_mgsym) {
-    case CMGSYM_ERR_NONE:
+    
+    case CMODULE_ERR_GSYM_NONE:
         return "";
 
-    case CMGSYM_ERR_PARAM_NULL:
+    case CMODULE_ERR_GSYM_PNULL:
         return "a parameter was null";
 
-    case CMGSYM_ERR_CMLOAD_ERR:
+    case CMODULE_ERR_GSYM_MNULL:
         return "module was not loaded";
 
-    case CMGSYM_ERR_GSYM_FAIL:
+    case CMODULE_ERR_GSYM_FAIL:
 #       if (defined(_WIN32) || defined(_WIN64))
             return "symbol not found";
 #       else
@@ -198,6 +190,7 @@ const char* cmodule_gsym_err(void) {
 #       endif       
     }
 }
+
 #endif // CMODULE_IMPL
 
 #ifdef __cplusplus

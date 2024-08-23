@@ -6,8 +6,8 @@
 #include "cmodule.h"
 
 bool loadpnlog(cmodule* mod, const char* path) {
-    if (cmodule_loadp(mod, path) > 0) {
-        printf("failed loading module \"%s\", %s\n", mod->path, cmodule_load_err());
+    if (cmodule_loadwp(mod, path) > 0) {
+        printf("failed loading module \"%s\", %s\n", mod->path, cmodule_geterr());
         return false;
     } else { 
         printf("succes loading module \"%s\"\n", mod->path); 
@@ -17,7 +17,7 @@ bool loadpnlog(cmodule* mod, const char* path) {
 
 bool gsymnlog(cmodule* mod, void** ptr, const char* symbol) {
     if (cmodule_gsym(mod, ptr, symbol) > 0) {
-        printf("failed getting symbol \"%s\" from \"%s\", %s\n", symbol, mod->path, cmodule_gsym_err());
+        printf("failed getting symbol \"%s\" from \"%s\", %s\n", symbol, mod->path, cmodule_geterr());
         return false;
     } else { 
         printf("succes getting symbol \"%s\" from \"%s\"\n", symbol, mod->path);
