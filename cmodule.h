@@ -54,22 +54,22 @@ typedef struct cmodule {
 } cmodule;
 
 cmodule_err cmodule_load   (cmodule* mod, const char* file);
-cmodule_err cmodule_loadwp (cmodule* mod, const char* file);
+cmodule_err cmodule_loadws (cmodule* mod, const char* file);
 cmodule_err cmodule_gsym   (cmodule* mod, void** ptr, const char* symbol);
 void        cmodule_free   (cmodule* mod);
 const char* cmodule_geterr (void);
 
-// #define CMODULE_IMPL
+#define CMODULE_IMPL
 #ifdef CMODULE_IMPL
 #include <stdlib.h>
 #include <string.h>
 
 #if (defined(_WIN32) || defined(_WIN64))
-    static const char* prefix = ".dll";
+    static const char* suffix = ".dll";
 #elif defined(__APPLE__)
-    static const char* prefix = ".dylib";
+    static const char* suffix = ".dylib";
 #else 
-    static const char* prefix = ".so";
+    static const char* suffix = ".so";
 #endif
 
 static cmodule_err last_err;
@@ -98,7 +98,7 @@ cmodule_err cmodule_load(cmodule* mod, const char* file) {
     }
 }
 
-cmodule_err cmodule_loadwp(cmodule* mod, const char* file) {
+cmodule_err cmodule_loadws(cmodule* mod, const char* file) {
     if ((mod == NULL) || (file == NULL)) { 
         last_err = CMODULE_ERR_LOAD_PNULL; 
         return last_err; 
@@ -107,7 +107,7 @@ cmodule_err cmodule_loadwp(cmodule* mod, const char* file) {
         return last_err;
     } else {
         strcpy(mod->path, file);
-        strcat(mod->path, prefix);
+        strcat(mod->path, suffix);
 #       if (defined(_WIN32) || defined(_WIN64))
             mod->handle = LoadLibrary(mod->path);
 #       else
