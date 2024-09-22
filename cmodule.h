@@ -31,8 +31,6 @@ extern "C" {
 #   define CMODULE_PATH_SIZE_MAX 256
 #endif 
 
-static_assert(CMODULE_PATH_SIZE_MAX >= 16, "option 'CMODULE_PATH_SIZE_MAX' should not be lower than 16");
-
 typedef enum cmodule_err {
     CMODULE_ERR_LOAD_NONE  = 0,
     CMODULE_ERR_LOAD_FAIL  = 1,
@@ -53,8 +51,8 @@ typedef struct cmodule {
     char path[CMODULE_PATH_SIZE_MAX];
 } cmodule;
 
-cmodule_err cmodule_load   (cmodule* mod, const char* file);
-cmodule_err cmodule_loadws (cmodule* mod, const char* file);
+cmodule_err cmodule_load   (cmodule* mod, const char* filename);
+cmodule_err cmodule_loadws (cmodule* mod, const char* filename);
 cmodule_err cmodule_gsym   (cmodule* mod, void** ptr, const char* symbol);
 void        cmodule_free   (cmodule* mod);
 const char* cmodule_geterr (void);
@@ -74,19 +72,19 @@ const char* cmodule_geterr (void);
 
 static cmodule_err last_err;
 
-cmodule_err cmodule_load(cmodule* mod, const char* file) {
-    if ((mod == NULL) || (file == NULL)) { 
+cmodule_err cmodule_load(cmodule* mod, const char* filename) {
+    if ((mod == NULL) || (filename == NULL)) { 
         last_err = CMODULE_ERR_LOAD_PNULL; 
         return last_err; 
-    } else if (sizeof(file) > CMODULE_PATH_SIZE_MAX) { 
+    } else if (sizeof(filename) > CMODULE_PATH_SIZE_MAX) { 
         last_err = CMODULE_ERR_LOAD_PMAX; 
         return last_err; 
     } else {
-        strcpy(mod->path, file);
+        strcpy(mod->path, filename);
 #       if (defined(_WIN32) || defined(_WIN64))
             mod->handle = LoadLibrary(mod->path);
 #       else
-            mod->handle = dlopen(file, RTLD_LAZY);
+            mod->handle = dlopen(filename, RTLD_LAZY);
 #       endif 
         if (!mod->handle) { 
             last_err = CMODULE_ERR_LOAD_FAIL; 
@@ -98,15 +96,15 @@ cmodule_err cmodule_load(cmodule* mod, const char* file) {
     }
 }
 
-cmodule_err cmodule_loadws(cmodule* mod, const char* file) {
-    if ((mod == NULL) || (file == NULL)) { 
+cmodule_err cmodule_loadws(cmodule* mod, const char* filename) {
+    if ((mod == NULL) || (filename == NULL)) { 
         last_err = CMODULE_ERR_LOAD_PNULL; 
         return last_err; 
-    } else if (sizeof(file) > CMODULE_PATH_SIZE_MAX - 7) { 
+    } else if (sizeof(filename) > CMODULE_PATH_SIZE_MAX - 7) { 
         last_err = CMODULE_ERR_LOAD_PMAX; 
         return last_err;
     } else {
-        strcpy(mod->path, file);
+        strcpy(mod->path, filename);
         strcat(mod->path, suffix);
 #       if (defined(_WIN32) || defined(_WIN64))
             mod->handle = LoadLibrary(mod->path);
@@ -149,7 +147,7 @@ cmodule_err cmodule_gsym(cmodule* mod, void** ptr, const char* symbol) {
 void cmodule_free(cmodule* mod) {
 #   if (defined(_WIN32) || defined(_WIN64))
         if (!FreeLibrary((HMODULE)mod->handle))
-            UnmapViewOfFile((HMODULE)mod->handle); // last resort
+            UnmapViewOfFilename((HMODULE)mod->handle); // last resort
 #   else
         dlclose(mod->handle);
 #   endif 
