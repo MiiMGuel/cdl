@@ -5,34 +5,28 @@
 #define CMODULE_PATH_SIZE_MAX 16
 #include "cmodule.h"
 
-bool loadpnlog(cmodule* mod, const char* path) {
-    if (cmodule_loadwp(mod, path) > 0) {
-        printf("failed loading module \"%s\", %s\n", mod->path, cmodule_geterr());
-        return false;
-    } else { 
-        printf("succes loading module \"%s\"\n", mod->path); 
-        return true;
-    }
-}
-
-bool gsymnlog(cmodule* mod, void** ptr, const char* symbol) {
-    if (cmodule_gsym(mod, ptr, symbol) > 0) {
-        printf("failed getting symbol \"%s\" from \"%s\", %s\n", symbol, mod->path, cmodule_geterr());
-        return false;
-    } else { 
-        printf("succes getting symbol \"%s\" from \"%s\"\n", symbol, mod->path);
-        return true;
-    }
-}
-
 int main(void) {
-    cmodule example            = {0};
-    void (*example_func)(void) = NULL;
-    int* example_var           = NULL;
+    void* example               = NULL;
+    void  (*example_func)(void) = NULL;
+    int*  example_var           = NULL;
 
-    if (!loadpnlog(&example, "modexample")) return -1;
-    if (!gsymnlog(&example, (void**)&example_func, "sum")) return -1;
-    if (!gsymnlog(&example, (void**)&example_var, "example_var")) return -1;
+    example = cmodule_loadws("modexample");
+    if (example == NULL) {
+        printf("failed loading module!\n");
+        return -1;
+    }
+
+    example_func = cmodule_gsym(example, "example_func");
+    if (example_func == NULL) {
+        printf("failed getting symbol \"sum\"!\n");
+        return -1;
+    }
+
+    example_var = cmodule_gsym(example, "example_var");
+    if (example_var == NULL) {
+        printf("failed getting symbol \"example_var\"!\n");
+        return -1;
+    }
 
     example_func();
     printf("example_var = %d\n", *example_var);

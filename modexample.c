@@ -9,5 +9,5 @@
 MODEX int example_var = 1234;
 
 MODEX void example_func(void) {
-    printf("Hello, Example!");
+    printf("Hello, Example!\n");
 }
