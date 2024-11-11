@@ -1,5 +1,5 @@
-#ifndef _CMODULE_
-#define _CMODULE_
+#ifndef CDL_H
+#define CDL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,13 +27,19 @@ extern "C" {
 #   include <dlfcn.h>
 #endif 
 
-void* cmodule_load  (const char* filename);
-void* cmodule_loadws(const char* filename);
-void* cmodule_gsym  (void* mod, const char* symbol);
-void cmodule_free   (void* mod);
+void* cdl_load(const char* filename);
+void* cdl_loadws(const char* filename);
+void* cdl_gsym(void* mod, const char* symbol);
+void cdl_free(void* mod);
 
-#define CMODULE_IMPL
-#ifdef CMODULE_IMPL
+#ifdef __cplusplus
+}
+#endif
+#endif // CDL_H
+
+#ifdef CDL_IMPL
+#undef CDL_IMPL
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,7 +51,7 @@ void cmodule_free   (void* mod);
     static const char* suffix = ".so";
 #endif
 
-void* cmodule_load(const char* filename) {
+void* cdl_load(const char* filename) {
     void* handle = NULL;
 #   if (defined(_WIN32) || defined(_WIN64))
         handle = LoadLibrary(filename);
@@ -55,7 +61,7 @@ void* cmodule_load(const char* filename) {
     return handle;
 }
 
-void* cmodule_loadws(const char* filename) {
+void* cdl_loadws(const char* filename) {
     void* handle         = NULL;
     size_t filename_size = strlen(filename) + 1;
     size_t suffix_size   = strlen(suffix) + 1;
@@ -71,7 +77,7 @@ void* cmodule_loadws(const char* filename) {
     return handle;
 }
 
-void* cmodule_gsym(void* mod, const char* symbol) {
+void* cdl_gsym(void* mod, const char* symbol) {
     void* ptr = NULL;
 #   if (defined(_WIN32) || defined(_WIN64))
         ptr = GetProcAddress(mod, symbol);
@@ -81,16 +87,11 @@ void* cmodule_gsym(void* mod, const char* symbol) {
     return ptr;
 }
 
-void cmodule_free(void* mod) {
+void cdl_free(void* mod) {
 #   if (defined(_WIN32) || defined(_WIN64))
         FreeLibrary(mod);
 #   else
         dlclose(mod);
 #   endif 
 }
-#endif // CMODULE_IMPL
-
-#ifdef __cplusplus
-}
-#endif
-#endif // _CMODULE_
+#endif // CDL_IMPL
